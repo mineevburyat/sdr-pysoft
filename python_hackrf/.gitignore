@@ -1,0 +1,12 @@
+__pycache__/
+
+dist/
+.venv/
+
+.DS_Store
+.pypirc
+
+*.egg-info
+
+python_hackrf/pylibhackrf/hackrf_old.h
+python_hackrf/pylibhackrf/hackrf_old.c

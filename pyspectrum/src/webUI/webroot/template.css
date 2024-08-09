@@ -1,0 +1,140 @@
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    background-color: whitesmoke;
+}
+/* mobile/tablet screen orientation should be landscape
+ Doesn't really work though as screen not wide enough
+ */
+#portrait-only { display: none;}
+@media only screen and (orientation:portrait){
+    #portrait-only { display:block; }
+    #landscape-only { display:none; }
+}
+@media only screen and (orientation:landscape){
+    #portrait-only { display:none; }
+}
+/* used to stop scrolling when touch events in canvas */
+.stop-scrolling {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* force canvas to be 100% wide, auto scale height */
+canvas {
+    width: 100%;
+    height: auto;
+    border: black 2px solid;
+}
+
+/* The source table */
+.table {
+    font-family:sans-serif;
+    font-size:12pt;
+}
+.blank_row {
+    line-height: 1px;
+}
+
+hr {
+    border: 3px solid #000;
+}
+
+/* the marker table, don't seem to be able to select it with #markerTable */
+.marker-table-condensed tr {
+    font-family:sans-serif;
+    font-size:12pt;
+}
+.marker-table-condensed th {
+    font-family:sans-serif;
+    font-size:10pt;
+}
+.file-table-condensed tr {
+    font-family:sans-serif;
+    font-size:10pt;
+}
+.file-table-condensed th {
+    font-family:sans-serif;
+    font-size:10pt;
+}
+/* highlight table mouse hover row */
+.table-hover tbody tr:hover td, .table-hover tobody th {
+    background-color: #d0d0d0;
+    /*font-size: 15px;*/  /* make text bigger on hover */
+}
+
+/* snapshot file table, max height and scroll */
+.fileListTable {
+    height:300px;
+    overflow-y:auto;
+}
+
+/* remove arrow functionality from form number input boxes
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* hide submit buttons */
+#submitbtnFreq{display:none;}
+#submitbtnFreqOffset{display:none;}
+#submitbtnGain{display:none;}
+
+/* the font for our buttons */
+.specbuttons{
+    font-weight: 600;
+    font-size: 10pt;
+    font-family: 'Courier New';
+}
+
+/* for the average beside the H4 on the Trace 0 buttons */
+.side-layout {
+    display: flex;
+    justify-content: flex-start;
+    font-size: 15pt; /* about h4 size, which we don't specify - a mistake */
+}
+
+/* Tabs */
+.tab-pane {
+    border-left: 1px solid #cccccc;
+    border-right: 1px solid #cccccc;
+    border-bottom: 1px solid #cccccc;
+    border-radius: 0px 0px 5px 5px;
+    padding: 10px;
+}
+/* colour of font on the tab */
+.nav-tabs > li > a {
+  color: black;
+}
+
+/* crop long lines of text */
+.CropLongTexts100 {
+  display: inline-block;
+  max-width: 100px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.CropLongTexts180 {
+  display: inline-block;
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* trigger status cell colour */
+.greenTrigger {
+    background: green;
+}
+.redTrigger {
+    background: red;
+}
+

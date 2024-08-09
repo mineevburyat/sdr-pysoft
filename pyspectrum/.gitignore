@@ -1,0 +1,36 @@
+# compiled python files
+*.pyc
+
+# Pycharm
+__pycache__/
+.idea/
+
+# local python environment
+venv/
+
+# logs
+*.log
+
+# snapshots, spectrum pics and thumbnails
+src/webUI/webroot/snapshots/*.wav
+src/webUI/webroot/snapshots/*.png
+src/webUI/webroot/snapshots/*.bin
+src/webUI/webroot/snapshots/*.32fle
+src/webUI/webroot/snapshots/*.8o
+src/webUI/webroot/snapshots/*.16tle
+src/webUI/webroot/snapshots/*.sigmf*
+
+src/webUI/webroot/thumbnails/*.png
+
+# snapshots in root
+snapshots/
+
+# digitised sample files
+*.8t
+*.8o
+*.16tle
+*.16tbe
+*.wav
+*.bin
+*.32fle
+
