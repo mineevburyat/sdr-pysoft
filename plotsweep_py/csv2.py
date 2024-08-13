@@ -69,8 +69,8 @@ def load_records(input_path: str) -> RecordCollection:
     
     return rc
 
-# if __name__ == "__main__":
-#     r = load_records('1.csv')
-#     print(r.freq_low, r.freq_high)
-#     for item in r.records:
-#         print(item)
+if __name__ == "__main__":
+    r = load_records('2.csv')
+    print(r.freq_low, r.freq_high)
+    for item in r.records:
+        print(item)
