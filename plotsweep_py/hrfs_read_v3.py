@@ -57,22 +57,6 @@ class Record:
 
 
 
-class Sweep:
-    def __init__(self, timestamp, spectr):
-        self.timestamp = timestamp
-        self.spectr = spectr
-
-    # def __repr__(self):
-    #     return f"Object Sweep: {self.timestamp} lines: {len(self.sweep_lines)}"
-    
-    def __str__(self):
-        return f"Sweep: {self.timestamp} lines: {len(self.spectr)}"
-    
-    def show_spectr(self):
-        for freq, power in self.spectr.items():
-            print(freq, power)
-
-
 """
  Коллекция записей - содержит все записи из csv файла созданным hackrf_sweep.
  Постоянные величины такие как самая старшая и самая младшая частоты, шаг сетки,
@@ -185,27 +169,40 @@ class RecordCollection:
         # оставшуюся часть записей считаем за еще одну развертку
         self.records_on_sweep.append(line_count)
     
-    def get_sweepcollection(self):
-        # формируем развертку по указанным записям, 
-        # сохраняем время когда снимали развертку 
-        # и сохраняем в коллекции разверток
-        sweeps = SweepCollections()
-        for index, total_records in enumerate(self.records_on_sweep):
-            sweep_records = self.records[index * total_records : (index + 1) * total_records]
-            if sweep_records:
-                avg_ts = sum([record.timestamp for record in sweep_records]) / len(sweep_records)
-                step = self.freq_step
-                spectr = {}
-                for record in sweep_records:
-                    freq_low = record.freq_low
-                    for index, power_bin in enumerate(record.samples):
-                        freq = freq_low + step * (index+1)
-                        spectr[freq] = power_bin
-            else:
-                raise IndexError('records of sweep is empty')
-            sweeps.add_sweep(
-                    Sweep(datetime.fromtimestamp(avg_ts), spectr))
-        return sweeps
+    # def get_sweepcollection(self):
+    #     # формируем развертку по указанным записям, 
+    #     # сохраняем время когда снимали развертку 
+    #     # и сохраняем в коллекции разверток
+    #     sweeps = SweepCollections()
+    #     print(sweeps)
+    #     for index, total_records in enumerate(self.records_on_sweep):
+    #         sweep_records = self.records[index * total_records : (index + 1) * total_records]
+    #         if sweep_records:
+    #             avg_ts = sum([record.timestamp for record in sweep_records]) / len(sweep_records)
+    #             step = self.freq_step
+    #             spectr = {}
+    #             for record in sweep_records:
+    #                 freq_low = record.freq_low
+    #                 for index, power_bin in enumerate(record.samples):
+    #                     freq = freq_low + step * (index+1)
+    #                     spectr[int(freq)] = power_bin
+    #         else:
+    #             raise IndexError('records of sweep is empty')
+    #         dt_str = datetime.fromtimestamp(avg_ts)
+    #         sweeps.add_sweep(Sweep(dt_str, spectr))
+    #     print(sweeps)
+    #     return sweeps
+
+class Sweep:
+    def __init__(self):
+        self.timestamp = None
+        self.spectr = None
+
+    def __str__(self):
+        if self.spectr:
+            return f"Sweep {len(self.spectr)}"
+        else:
+            return "empty spectr"
 
 class SweepCollections:
     def __init__(self):
@@ -216,14 +213,10 @@ class SweepCollections:
             self.list.append(Sweep)
 
     def __repr__(self):
-        return f"Object Sweeps Collections: Count sweeps: {len(self.sweeps)}"
+        return f"Object Sweeps Collections: total sweeps: {len(self.list)}"
 
 
-rc = RecordCollection('2.csv')
-# print(rc)
-sweeps = rc.get_sweepcollection()
-# print(rc)
-# print(sweeps)
-for sweep in sweeps.list:
-    print(sweep)
-    # sweep.show_spectr()
+rc = RecordCollection('3.csv')
+print(rc)
+s = Sweep()
+print(s)
