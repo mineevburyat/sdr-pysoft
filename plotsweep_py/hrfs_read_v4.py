@@ -6,7 +6,6 @@ from typing import List, Dict, Any, Union
 # settings and constants
 DATE_FORMAT = '%Y-%m-%d'
 TIME_FORMAT = '%H:%M:%S.%f'
-file_path = '3.csv'
 
 MHZ = 1000000
 kHz = 1000
@@ -177,41 +176,18 @@ class RecordCollection:
             spectr = {}
             for record in sweep_records:
                 freq_low = record.freq_low
-                for index, power_bin in enumerate(record.samples):
-                    freq = freq_low + step * (index+1)
+                for i, power_bin in enumerate(record.samples):
+                    freq = freq_low + step * (i+1)
                     spectr[int(freq)] = power_bin
         else:
             raise IndexError('records of sweep is empty')
         dt_str = datetime.fromtimestamp(avg_ts)
         orded_spectr = [power for freq, power in sorted(spectr.items())]
-        return (dt_str, self.freq_min, self.freq_max, orded_spectr)
-        
-    
+        return (dt_str, self.freq_min, self.freq_max, self.freq_step, orded_spectr)
 
-class Sweep:
-    def __init__(self):
-        self.timestamp = None
-        self.spectr = None
-
-    def __str__(self):
-        if self.spectr:
-            return f"Sweep {len(self.spectr)}"
-        else:
-            return "empty spectr"
-
-class SweepCollections:
-    def __init__(self):
-        self.list: List[Sweep] = []
-
-    def add_sweep(self, sweep):
-        if type(sweep) == Sweep:
-            self.list.append(Sweep)
-
-    def __repr__(self):
-        return f"Object Sweeps Collections: total sweeps: {len(self.list)}"
 
 if __name__ == '__main__':
-    rc = RecordCollection('3.csv')
+    rc = RecordCollection('2.csv')
     print(rc)
-    dt, f_min, f_max, spectr = rc.get_power_spectr(0)
-    print(dt, f_min / MHZ, f_max / MHZ, spectr)
+    dt, f_min, f_max, f_step, spectr = rc.get_power_spectr(0)
+    print(dt, f_min / MHZ, f_max / MHZ, round(f_step / kHz, 1), len(spectr))

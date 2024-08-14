@@ -190,3 +190,27 @@ sweeps.add_sweep(rc.get_sweep(-line_count))
 
 print(rc)
 print(sweeps)
+
+# def get_sweepcollection(self):
+    #     # формируем развертку по указанным записям, 
+    #     # сохраняем время когда снимали развертку 
+    #     # и сохраняем в коллекции разверток
+    #     sweeps = SweepCollections()
+    #     print(sweeps)
+    #     for index, total_records in enumerate(self.records_on_sweep):
+    #         sweep_records = self.records[index * total_records : (index + 1) * total_records]
+    #         if sweep_records:
+    #             avg_ts = sum([record.timestamp for record in sweep_records]) / len(sweep_records)
+    #             step = self.freq_step
+    #             spectr = {}
+    #             for record in sweep_records:
+    #                 freq_low = record.freq_low
+    #                 for index, power_bin in enumerate(record.samples):
+    #                     freq = freq_low + step * (index+1)
+    #                     spectr[int(freq)] = power_bin
+    #         else:
+    #             raise IndexError('records of sweep is empty')
+    #         dt_str = datetime.fromtimestamp(avg_ts)
+    #         sweeps.add_sweep(Sweep(dt_str, spectr))
+    #     print(sweeps)
+    #     return sweeps

@@ -1,7 +1,7 @@
 import sys
 import argparse
-from csv2 import load_records  # Assuming csv.py is renamed to csv_module.py
-from draw import colormaps, DrawSettings, draw_image  # Assuming draw.py is renamed to draw_module.py
+from hrfs_read_v4 import RecordCollection
+import matplotlib.pyplot as plt
 
 def plot(args):
     input_path = args.INPUT
