@@ -35,7 +35,7 @@ if __name__ == "__main__":
             img = np.array(sweep.spectr)
         else:
             img = np.vstack((img, sweep.spectr))
-        ts_list[count] = sweep.dt
+        ts_list[count] = sweep.timestamp
         count += 1
     print()
     
