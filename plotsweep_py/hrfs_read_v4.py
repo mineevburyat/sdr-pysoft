@@ -181,13 +181,14 @@ class RecordCollection:
                     spectr[int(freq)] = power_bin
         else:
             raise IndexError('records of sweep is empty')
-        dt_str = datetime.fromtimestamp(avg_ts)
+        
         orded_spectr = [power for freq, power in sorted(spectr.items())]
-        return (dt_str, self.freq_min, self.freq_max, self.freq_step, orded_spectr)
+        return (avg_ts, self.freq_min, self.freq_max, self.freq_step, orded_spectr)
 
 
 if __name__ == '__main__':
     rc = RecordCollection('2.csv')
     print(rc)
-    dt, f_min, f_max, f_step, spectr = rc.get_power_spectr(0)
-    print(dt, f_min / MHZ, f_max / MHZ, round(f_step / kHz, 1), len(spectr))
+    ts, f_min, f_max, f_step, spectr = rc.get_power_spectr(0)
+    dt_str = datetime.fromtimestamp(ts)
+    print(dt_str, f_min / MHZ, f_max / MHZ, round(f_step / kHz, 1), len(spectr))

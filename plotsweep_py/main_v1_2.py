@@ -23,37 +23,37 @@ import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
     print('start parsing csv')
-    rc = RecordCollection('test.csv')
+    rc = RecordCollection('9ch.csv')
     print('parsing ok')
-    # plt.show()
     count = 0
     count_sweep = len(rc.records_on_sweep)
-    ts_list = np.zeros(count_sweep)
+    ts_list = []
     for index_sweep in range(count_sweep):
         sweep = Sweep(*rc.get_power_spectr(index_sweep))
         if count == 0:
             img = np.array(sweep.spectr)
         else:
             img = np.vstack((img, sweep.spectr))
-        ts_list[count] = sweep.dt
+        ts_list.append(sweep.timestamp)
         count += 1
-    print()
     
-    
+    print(ts_list[0::10])
+    print([Sweep.get_str_dt(item) for item in ts_list][-1::-10])
     
     plt.subplot(1, 1, 1)
     plt.title('Hotmap')
     plt.xlabel('frequency')
     plt.ylabel('td')
     
-    # plt.xlim(sweep.f_min, sweep.f_max)
+    X = sweep.freq_range()
+    Y = np.arange(len(ts_list))
     # print(f_min, f_max)
     # plt.xticks(np.arange(f_min + f_step/2, f_max, f_step * 50))
     plt.grid()
     
     # plt.yticks()
-    plt.pcolormesh(img[-1::-1,:], vmin=sweep.min_power(), vmax=sweep.max_power())
-    
+    plt.pcolormesh(X, Y, img[-1::-1,:])
+    plt.yticks(Y[0::10], [Sweep.get_str_dt(item) for item in ts_list][0::10])
     plt.colorbar()
     plt.show()
     
