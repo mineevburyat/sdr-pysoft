@@ -22,12 +22,8 @@ import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
     print('start parsing csv')
-    rc = RecordCollection('8ch.csv')
+    rc = RecordCollection('test.csv')
     print('parsing ok')
-    plt.subplot(1, 1, 1)
-    plt.title('Power spectr bins')
-    plt.xlabel('frequency')
-    plt.ylabel('power (dB)')
     # plt.show()
     count = 0
     
@@ -44,8 +40,20 @@ if __name__ == "__main__":
     y = [avg_power / count for avg_power in avg_spectr]
     avg = np.zeros((len(spectr),))
     avg[...] = sum(y) / len(y)
-    plt.text(1, 1, dt)
+    max_power_index = np.argmax(y)
+    max_power = np.max(y)
+    freq_max = x[max_power_index]
+    
+    
+    plt.subplot(1, 1, 1)
+    plt.title('Power spectr bins')
+    plt.xlabel('frequency')
+    plt.ylabel('power (dB)')
+    plt.text(x[1], max_power, dt)
+    plt.text(freq_max, max_power, str(f"{int(freq_max / MHZ)} MHz \n ({round(max_power)} dB)"))
     plt.plot(x, y)
     plt.plot(x,avg)
     plt.grid()
     plt.show()
+    
+    
