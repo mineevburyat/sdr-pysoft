@@ -16,37 +16,29 @@ e - 1.48
 f - 1.52
 """
 
-from hrfs_read_v4 import RecordCollection, MHZ, kHz
+from hrfs_read_v6rt import SweepCollection, MHZ, kHz
 from sweep import Sweep
 import numpy as np
 import matplotlib.pyplot as plt
-import time
+
 
 if __name__ == "__main__":
     print('start parsing csv')
-    starttime = time.monotonic()
-    rc = RecordCollection('4ch.csv')
-    print(f'parsing ok {round(time.monotonic() - starttime, 2)} sec. ')
-    count = 0
-    count_sweep = len(rc.records_on_sweep)
-    ts_list = []
-    for index_sweep in range(count_sweep):
-        sweep = Sweep(*rc.get_power_spectr(index_sweep))
-        if count == 0:
-            img = np.array(sweep.spectr)
-        else:
-            img = np.vstack((img, sweep.spectr))
-        ts_list.append(sweep.timestamp)
-        count += 1
+    rc = SweepCollection(range=(1000,1150), width_bin=250000)
+    # rc = SweepCollection(file_csv="6ch.csv")
+    print(rc)
+    print('parsing ok')
+    ts_list, img = rc.get_hotmap()
     
     # TODO Yaxis is time? from up is netime to down is oldtime 
-    print(ts_list[0::10])
-    print([Sweep.get_str_dt(item) for item in ts_list][-1::-10])
+    print(ts_list[-1::-20])
+    print([Sweep.get_str_dt(item) for item in ts_list][-1::-20])
     
 
-    X_freq = sweep.freq_range()
-    Y_td = np.arange(len(ts_list))
+    X_freq = rc.freq_range()
+    Y_td = np.arange(0, -len(ts_list), -1)
     Y_power = np.mean(img, axis=0)
+    Y_maxpower = np.max(img, axis=0)
     max_power_index = np.argmax(Y_power)
     max_power = np.max(Y_power)
     freq_max = X_freq[max_power_index]
@@ -60,7 +52,8 @@ if __name__ == "__main__":
     plt.text(freq_max, max_power, str(f"{int(freq_max / MHZ)} MHz \n ({round(max_power)} dB)"))
     plt.plot(X_freq, Y_power)
     plt.plot(X_freq, Y_avgpower)
-    plt.xlim(sweep.f_min, sweep.f_max)
+    plt.plot(X_freq, Y_maxpower)
+    plt.xlim(rc.freq_min, rc.freq_max)
     plt.grid()
     # lower graph is sonogram
     plt.subplot(2, 1, 2)
@@ -69,7 +62,7 @@ if __name__ == "__main__":
     plt.xlabel('frequency')
     plt.grid()
     plt.pcolormesh(X_freq, Y_td, img[-1::-1,:])
-    plt.yticks(Y_td[0::10], [Sweep.get_str_dt(item) for item in ts_list][0::10])
+    plt.yticks(Y_td[0::20], [Sweep.get_str_dt(item) for item in ts_list][-1::-20])
     plt.show()
     
     
