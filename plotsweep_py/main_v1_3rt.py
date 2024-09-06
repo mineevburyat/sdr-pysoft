@@ -1,6 +1,6 @@
 """
-1 - 1.00
-2 - 1.02
+1 - 0.96
+2 - 1.00
 3 - 1.04
 4 - 1.08
 5 - 1.12
@@ -23,6 +23,7 @@ import matplotlib.pyplot as plt
 
 
 if __name__ == "__main__":
+    
     print('start parsing csv')
     rc = SweepCollection(range=(1000,1150), width_bin=250000)
     # rc = SweepCollection(file_csv="6ch.csv")

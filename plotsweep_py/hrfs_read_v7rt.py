@@ -1,11 +1,11 @@
 import csv
 from datetime import datetime
-from typing import List, Dict, Any, Union
-from subprocess import Popen, PIPE, DEVNULL, STDOUT, run
+from typing import List
+from subprocess import Popen, PIPE
 import numpy as np
 import matplotlib.pyplot as plt
-import time
 from matplotlib.animation import FuncAnimation
+import matplotlib.gridspec as gridspec
 
 
 # settings and constants
@@ -18,14 +18,17 @@ DT_FORMAT = "%d.%m.%Y %H:%M:%S"
 MAX_SWEEPS = 100
 
 
-"""
- Запись хранит в себе упрощенную строку развертки hackrf_sweep.
- Штамп времени, начальная и конечная частота, список энергетических бинов.
- Шаг, длинна сэмпла должна быть постоянной на всем протяжении разверток,
- поэтому они переносятся на более верхний уровень - в коллекцию записей.
- Заимстовано из https://github.com/greatscottgadgets/plotsweep
-"""
+db_base_ch = [item*MHZ for item in range(960, 1540, 40)]
+
+
 class Record:
+    """
+    Запись хранит в себе упрощенную строку развертки hackrf_sweep.
+    Штамп времени, начальная и конечная частота, список энергетических бинов.
+    Шаг, длинна сэмпла должна быть постоянной на всем протяжении разверток,
+    поэтому они переносятся на более верхний уровень - в коллекцию записей.
+    Заимстовано из https://github.com/greatscottgadgets/plotsweep
+    """
     def __init__(
         self,
         timestamp: float,
@@ -62,13 +65,14 @@ class Record:
         return f"Object Record: {int(self.freq_low / MHZ)}-{int(self.freq_high / MHZ)} MHz, bins: {len(self.samples)}"
 
 
-"""
- Развертка. Набор коллекции записей преобразуем в полноценную развертку - 
- отсортированную по частотам набор бинов мощности с указанием среднего времени 
- снятия развертки. Диапазон частот, шаг и ширина бина является 
- параметром более высокой структуры  
-"""
 class Sweep:
+    """
+    Развертка. Набор коллекции записей необходимо преобразовать в 
+    полноценную развертку - отсортированную по частотам набор бинов мощности 
+    с указанием среднего штампа времени снятия развертки. 
+    Диапазон частот, шаг и ширина бина являются 
+    параметрами более высокой структуры  
+    """
     def __init__(self, timestamp, spectr):
         if type(spectr) != np.ndarray:
             raise TypeError("Sweep convertion: spectr variable mast been numpy array of power bins")
@@ -78,8 +82,7 @@ class Sweep:
         
         self.timestamp = timestamp
         self.spectr = np.array(spectr)
-        
-
+    
     def get_bins_in_sweep(self):
         return len(self.spectr)
     
@@ -95,28 +98,26 @@ class Sweep:
     def __repr__(self):
         return f"{self.get_str_dt()}: {len(self.spectr)}"
 
-"""
-Коллекция разверток - содержит все развертки созданным hackrf_sweep.
- Постоянные величины такие как самая старшая и самая младшая частоты, шаг сетки,
- длинна сэмплов и список записей с (штампом времени, поддиапазоном и 
- энергетическими бинами) формируются по ходу чтения файла.
-  Заимстовано из https://github.com/greatscottgadgets/plotsweep
-"""
+
 class SweepCollection:
-    def __init__(self, file_csv=None, range=None, width_bin=1000000):
+    """
+    Коллекция разверток - содержит все развертки созданным hackrf_sweep.
+    Постоянные величины такие как самая старшая и самая младшая частоты, 
+    шаг сетки, длинна сэмплов и список записей 
+    с (штампом времени и энергетическими бинами) формируются по ходу чтения строк.
+    Тут же храниться максимальная история хранения разверток.
+    И глубина усреднения мощности при визуализации.
+    Заимстовано из https://github.com/greatscottgadgets/plotsweep
+    """
+    def __init__(self, max_depth_time=MAX_SWEEPS, avg_power_depth=3):
         self.sweeps: List[Sweep] = []
         self.freq_min = None
         self.freq_max = None
         self.freq_step = None
         self.num_sample = None
+        self.max_depth_time = max_depth_time
+        self.avg_power_depth=avg_power_depth
         
-        if file_csv:
-            self.read_sweep_csv(file_csv)
-        elif range and type(range) == tuple:
-            self.read_sweep_realtime(range, width_bin)
-        else:
-            print("warning! sweepcollection is empty")
-    
     def __str__(self):
         if self.sweeps:
             freq_min = int(self.freq_min / MHZ)
@@ -148,13 +149,11 @@ class SweepCollection:
         self.find_min_freq(freq_low)
         self.find_max_freq(freq_high)
         # сохраняем строку как элементарную запись
-        samples = [float(x) for x in line[6:]]
+        samples = [int(x.split('.')[0]) for x in line[6:]]
         return Record(timestamp=timestamp, 
                         freq_low=freq_low, 
                         freq_high=freq_high, 
                         samples=samples)
-        
-
 
     def read_sweep_csv(self, file_name):
         with open(file_name, 'r') as f:
@@ -240,18 +239,34 @@ class SweepCollection:
             records.append(record)
         self._get_power_spectr(records)
 
-    def read_sweep_shot(self, range, width_bin=1000000):
-        start, stop = range
-        process = Popen(['hackrf_sweep', f'-f {start}:{stop}',f'-w {width_bin}', '-1'], 
+    def read_sweep_shot(self, range=None, width_bin=1000000):
+        if range:
+            print("first show! new inicialize")
+            start, stop = range
+            self.start = start
+            self.stop = stop
+            self.width_bin = width_bin
+            self.sweeps: List[Sweep] = []
+            self.freq_min = None
+            self.freq_max = None
+            self.freq_step = None
+            self.num_sample = None
+
+        process = Popen(['hackrf_sweep', f'-f {self.start}:{self.stop}',f'-w {self.width_bin}', '-1'], 
                          stdout=PIPE,
+                         stderr=PIPE,
                          text=True)
         records = []
         for row in iter(process.stdout.readline, ''):
             line = [item.strip() for item in row.strip().split(',')]
             if len(line) < 6:
+                print("warning!",line)
                 continue
             records.append(self._parse_line(line))
         self._get_power_spectr(records)
+        for row in iter(process.stderr.readline, ''):
+            if row.find('Sweeping') != -1:
+                print(row.strip(), " bin counts in spectr:", self.get_bins_in_sweep())
     
     def find_min_freq(self, freq):
         if self.freq_min is not None:
@@ -280,7 +295,7 @@ class SweepCollection:
             self.num_sample = num_sample
 
     def _get_power_spectr(self, records: List[Record]):
-        """Получить энергитический спектр развертки по записям"""
+        """Получить энергетический спектр развертки по записям"""
         if records:
             avg_ts = sum([record.timestamp for record in records]) / len(records)
             step = self.freq_step
@@ -294,11 +309,12 @@ class SweepCollection:
             raise IndexError('records of sweep is empty')
         
         orded_spectr = [power for freq, power in sorted(spectr.items())]
-        if self.get_total_sweeps() < MAX_SWEEPS:
-            self.sweeps.append(Sweep(avg_ts, np.array(orded_spectr)))
+        if self.get_total_sweeps() < self.max_depth_time:
+            self.sweeps.append(Sweep(avg_ts, np.array(orded_spectr, dtype=int)))
         else:
-            self.sweeps.append(Sweep(avg_ts, np.array(orded_spectr)))
             self.sweeps.pop(0)
+            self.sweeps.append(Sweep(avg_ts, np.array(orded_spectr, dtype=int)))
+            
     
     def freq_range(self):
         return np.arange(self.freq_min + self.freq_step/2, self.freq_max, self.freq_step)
@@ -306,78 +322,188 @@ class SweepCollection:
     def get_total_sweeps(self):
         return len(self.sweeps)
     
-    def get_bins_in_sweep(self):
+    def get_bins_in_sweep(self, index=-1):
         if self.sweeps:
-            sweep = self.sweeps[0]
+            sweep = self.sweeps[-1]
             return sweep.get_bins_in_sweep()
         else:
             return 0
     
     def get_min_power(self):
-        return min([np.min(sweep.spectr) for sweep in self.sweeps])
+        if self.sweeps:
+            return min([np.min(sweep.spectr) for sweep in self.sweeps])
+        return -100
 
     def get_hotmap(self):
-        count = 0
+        # TODO ValueError could not broadcast input array from shape (704,) into shape (1056,)
+        # смотреть формирование развертки - вектора изначальные и вектор новый имеют разную размерность
         ts_list = []
-        # img = np.zeros((self.get_bins_in_sweep, MAX_RECORDS), dtype=float)
-        # img[:] = self.get_min_power()
-        for sweep in self.sweeps:
-            if count == 0:
-                img = np.array(sweep.spectr)
-            else:
-                img = np.vstack((img, sweep.spectr))
+        img = np.full((self.max_depth_time, self.get_bins_in_sweep()), self.get_min_power(), dtype=int)
+        for index, sweep in enumerate(self.sweeps):
+            img[index] = sweep.spectr
             ts_list.append(sweep.timestamp)
-            count += 1
         return ts_list, img
     
     
+    def get_avgpower(self, ts_list, img):
+        ts_index = len(ts_list) - 1
+        if ts_index < self.avg_power_depth:
+            power = img[ts_index]
+        else:
+            power = np.mean(img[ts_index-self.avg_power_depth:ts_index+1:1], axis=0)
+        return power
+
+def get_base_supbin(chan):
+    chan = chan - 1
+    db_12video_chan = [[item*MHZ, (item-20)*MHZ, (item-6)*MHZ, (item+5)*MHZ, (item+19)*MHZ ] for item in range(960, 1540, 40)]
+    return db_12video_chan[chan]
+
+def get_base_video_chan(freq):
+    for index, base_freq in enumerate([item*MHZ for item in range(960, 1540, 40)]):
+        if abs(base_freq - freq) < 2e6:
+            return index+1
+    return None
+
+def freq_in_base_channels_bin(freq, channel):
+    sub_bin = get_base_supbin(channel)
+    for f_bin in sub_bin:
+        if abs(f_bin - freq) < 2e6:
+            return True
+    return False
+    
+
+def find_video_chans(freq_list):
+    channels = []
+    for freq in freq_list:
+        channel = get_base_video_chan(freq)
+        if channel:
+            channels.append(channel)
+    if channels:
+        print("info! there is a possibility of a video channel", channels)
+        probres = {}
+        for channel in channels:
+            probres[channel] = 0
+            for freq in freq_list:
+                if freq_in_base_channels_bin(freq, channel):
+                    probres[channel] += 1
+            result = {}
+            print("info! may be is channels:", probres)
+            for ch, wight in probres.items():
+                if 2 <= wight <= 5:
+                    result[ch] = wight
+            return sorted(result.items(), key=lambda item: item[1])
+
+    else:
+        return []        
+
+def get_index_freq(freq_vector, freq):
+    print
 
 if __name__ == '__main__':
+    # сворачиваем диапазон на 40МГц гистограммы
+    # где столбец выше - там и вещание
+    # обязательно выдерживать диапазон от 940 до 1540
+    # котрый разбивается на 16 поддиапазонов
+    freq_range = (940, 1540)
+    step = 500000
+    # Получаем начальные данные первой развертки
     rc = SweepCollection()
-    rc.read_sweep_shot(range=(980,1400), width_bin=250000)
-    X_freq = rc.freq_range()
+    rc.read_sweep_shot(range=freq_range, width_bin=step)
     ts_list, img = rc.get_hotmap()
-    Y_power = img
-    # find max power
-    # Y_maxpower = np.max(img, axis=0)
-    # max_power_index = np.argmax(Y_power)
-    # max_power = np.max(Y_power)
-    # freq_max = X_freq[max_power_index]
-    # find average power line
-    Y_avgpower = np.zeros(len(X_freq))
-    Y_avgpower[...] = np.mean(Y_power)
-    
-    fig, ax = plt.subplots()
-    line, = ax.plot(X_freq, Y_power)
-    # line_avg, = ax.plot(X_freq, Y_avgpower)
-    
-    
+    Y_power = img[0]
+    X_freq = rc.freq_range()
+    max_power = np.max(img,axis=0)
+    avg_max = np.average(max_power)
 
-    def init(line):
-        ax.set_xlim(X_freq)
-        ax.set_ylim(rc.get_min_power, 0)
-        line.set_data(X_freq, Y_power)
-        return line
+    Floor = np.full((rc.get_bins_in_sweep(),), avg_max, dtype=int)
+    # print(Floor)
+    # Формируем сетку с графиками
+    fig = plt.figure(figsize=(16, 8),facecolor='white')
     
-    def update(phasa, line):
-        rc.read_sweep_shot(range=(980,1400), width_bin=250000)
-        ts_list, img = rc.get_hotmap()
-        X_freq = rc.freq_range()
-        # Y_td = np.arange(0, -len(ts_list), -1)
-        print(img.shape)
-        # row, col = img.shape
-        if len(img.shape) == 1:
-            Y_power = img
+    gs = gridspec.GridSpec(2, 1)
+    ax_u = plt.subplot(gs[0,0])
+    ax_u.set_axis_off
+    ax_u.set_ylim(rc.get_min_power() - 10, 0)
+    ax_u.set_title('Power')
+    ax_u.set_ylabel('Power (dB)', fontsize=16)
+    ax_u.set_xlim(X_freq[0], X_freq[-1])
+    # ax_u.set_xticks(fontsize=10)
+    line, = ax_u.plot(X_freq, Y_power)
+    ln_floor, = ax_u.plot(X_freq, Floor)
+    max_markers = 10
+    markers, = ax_u.plot([], [], marker="D", ls='', color="red" )
+    ax_d = plt.subplot(gs[1,0])
+    quad = ax_d.pcolormesh(X_freq,range(0,-rc.max_depth_time,-1), img, shading='gouraud', )
+    ax_d.set_xlabel('frequency', fontsize=16)
+    ax_d.set_ylabel('time', fontsize=16)
+    ax_d.set_yticks([])
+    # quad = ax_d.pcolormesh(img)
+    f_count = 0
+    def n_largest_indices_sorted(arr, n):
+        indices = np.argpartition(arr, -n)[-n:]
+        return indices[np.argsort(-arr[indices])]
+    
+    
+        
+    def update(phasa):
+        try:
+            rc.read_sweep_shot()
+            ts_list, img = rc.get_hotmap()
+        except IndexError as e:
+            print("warning!", e)
+        except ValueError as e:
+            print("warning!", e)
         else:
-            row, col = img.shape
-            if row <= 5:
-                Y_power = np.mean(img, axis=0)
+            Y_power = rc.get_avgpower(ts_list, img)
+            # поиск максимальной огибающей и максималносредней
+            max_power = np.max(img, axis=0)
+            avg_max = np.average(max_power)
+            Floor = np.full((rc.get_bins_in_sweep(),), avg_max, dtype=int)
+            # поиск частот с пиками
+            max_indexes = n_largest_indices_sorted(Y_power, 20)
+            max_indexes = max_indexes.tolist()
+            
+            for i, x in enumerate(max_indexes):
+                for y in max_indexes[i+1:]:
+                    if abs(x-y) <= 4:
+                        max_indexes.remove(y)
+            max_freq_find = [X_freq[index] for index in max_indexes]
+            # print([int(np.average(Y_power[index * 83: (index+1) * 84]) - avg_max) for index in range(16)])
+            ln_floor.set_data(X_freq, Floor)
+            line.set_data(X_freq, Y_power)
+            quad.set_array(img.ravel())            
+            vchans = [chan[0] for chan in find_video_chans(max_freq_find)]
+            global f_count
+            if vchans:
+                f_count += 1
+                if f_count > 3:
+                    f_count = 3
             else:
-                Y_power = np.mean(img[-1:-5:-1], axis=0)
-        line.set_data(X_freq, Y_power)
-        return [line]
+                if f_count > 0:
+                    f_count -= 1
+            print(vchans, f_count)
+            if vchans and f_count > 2:
+                print("Warning!! Fing channels:", vchans)
+                # ax_u.set_title(f"Power: find video chan - {str(vchans)}")
+                vfreq = []
+                for vchan in vchans:
+                    vfreq.extend(get_base_supbin(vchan))
+                find_indexes = []
+                for freq in vfreq:
+                    nearest_val = X_freq.flat[np.abs(X_freq - freq).argmin()]
+                    find_indexes.append(np.where(X_freq == nearest_val)[0][0])
+                markers.set_data([X_freq[index] for index in find_indexes], [Y_power[index] for index in find_indexes]) 
+            else:
+                markers.set_data([], [])
+                
+
+        finally:
+            return [line, ln_floor, quad, markers]
+                
+        
             
     animation = FuncAnimation(fig, func=update, interval=1000,
-                              blit=True, repeat=False, fargs=(line, ),) 
+                              blit=True, repeat=False, ) 
+    gs.tight_layout(fig)
     plt.show()
     
