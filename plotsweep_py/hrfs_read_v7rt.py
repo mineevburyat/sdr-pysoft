@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import matplotlib.gridspec as gridspec
+from sendtorecive import Reciver
 
 
 # settings and constants
@@ -406,6 +407,9 @@ if __name__ == '__main__':
     # котрый разбивается на 16 поддиапазонов
     freq_range = (70, 150)
     step = 500000
+    # Подключаемся к приемнику
+    recive = Reciver()
+    recive.readlines()
     # Получаем начальные данные первой развертки
     rc = SweepCollection()
     rc.read_sweep_shot(range=freq_range, width_bin=step)
@@ -484,6 +488,8 @@ if __name__ == '__main__':
             print(vchans, f_count)
             if vchans and f_count > 2:
                 print("Warning!! Fing channels:", vchans)
+                if recive.set_channel(vchan):
+                    print(f"Приемник установлен на частоту {vchan}")
                 # ax_u.set_title(f"Power: find video chan - {str(vchans)}")
                 vfreq = []
                 for vchan in vchans:
