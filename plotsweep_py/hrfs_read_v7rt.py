@@ -405,7 +405,7 @@ if __name__ == '__main__':
     # где столбец выше - там и вещание
     # обязательно выдерживать диапазон от 940 до 1540
     # котрый разбивается на 16 поддиапазонов
-    freq_range = (70, 150)
+    freq_range = (940, 1540)
     step = 500000
     # Подключаемся к приемнику
     recive = Reciver()
@@ -488,7 +488,7 @@ if __name__ == '__main__':
             print(vchans, f_count)
             if vchans and f_count > 2:
                 print("Warning!! Fing channels:", vchans)
-                if recive.set_channel(vchan):
+                if recive.set_channel(vchans[0]):
                     print(f"Приемник установлен на частоту {vchan}")
                 # ax_u.set_title(f"Power: find video chan - {str(vchans)}")
                 vfreq = []
